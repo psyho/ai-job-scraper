@@ -16,10 +16,16 @@ puts "Downloading #{sites.size} sites to #{output_dir}"
 
 FileUtils.mkdir_p(output_dir)
 
+def fix_encoding(str)
+  str.encode('utf-8')
+rescue Encoding::UndefinedConversionError
+  str.force_encoding('iso-8859-1').encode('utf-8')
+end
+
 sites.each_with_index do |site, idx|
   puts "Downloading #{idx + 1}/#{sites.size}: #{site}"
 
   response = Faraday.get(site)
 
-  File.write(File.join(output_dir, "#{idx}.html"), response.body)
+  File.write(File.join(output_dir, "#{idx}.html"), fix_encoding(response.body))
 end

@@ -1,19 +1,30 @@
 GEM
   remote: https://rubygems.org/
   specs:
+    dotenv (3.1.2)
+    event_stream_parser (1.0.0)
     faraday (2.9.0)
       faraday-net_http (>= 2.0, < 3.2)
+    faraday-multipart (1.0.4)
+      multipart-post (~> 2)
     faraday-net_http (3.1.0)
       net-http
+    multipart-post (2.4.1)
     net-http (0.4.1)
       uri
+    ruby-openai (7.0.1)
+      event_stream_parser (>= 0.3.0, < 2.0.0)
+      faraday (>= 1)
+      faraday-multipart (>= 1)
     uri (0.13.0)
 
 PLATFORMS
   x86_64-linux
 
 DEPENDENCIES
+  dotenv (~> 3.1)
   faraday (~> 2.9)
+  ruby-openai (~> 7.0)
 
 BUNDLED WITH
    2.4.14

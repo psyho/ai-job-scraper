@@ -1,0 +1,70 @@
+#!/usr/bin/env ruby
+
+require "openai"
+require "json"
+require "dotenv/load"
+
+if ARGV.size != 2
+  puts "Usage: #{$0} {sites.txt} {output_dir}"
+  exit 1
+end
+
+CLIENT = OpenAI::Client.new(
+  access_token: ENV["OPENAI_API_KEY"],
+  organization_id: ENV["OPENAI_ORGANIZATION_ID"],
+  log_errors: true,
+)
+
+def prompt(html)
+  <<~EOF
+  Given the following HTML:
+
+  ```
+  #{html}
+  ```
+
+  Tell me if the HTML above contains a list of job postings.
+
+  Return the result as JSON with the following structure:
+  `contains_job_postings` (boolean)
+  EOF
+end
+
+def classify(site:, idx:, html:)
+  response = CLIENT.chat(
+    parameters: {
+      model: "gpt-4-turbo",
+      temperature: 0.0,
+      response_format: { type: "json_object" },
+      messages: [{ role: "user", content: prompt(html) }],
+    }
+  )
+
+  data = response.dig("choices", 0, "message", "content")
+
+  JSON.parse(data, symbolize_names: true).fetch(:contains_job_postings)
+end
+
+sites = File.readlines(ARGV[0]).map(&:chomp)
+output_dir = File.expand_path(ARGV[1])
+metadata_file = "metadata.json"
+
+if File.exist?(metadata_file)
+  metadata = JSON.parse(File.read(metadata_file), symbolize_names: true)
+else
+  metadata = {}
+end
+
+sites.each_with_index do |site, idx|
+  next if metadata.dig(site, :no_js) != nil
+
+  output_file = File.join(output_dir, "#{idx}.html")
+  html = File.read(output_file)
+  result = classify(site:, idx:, html:)
+
+  metadata[site] ||= {}
+  metadata[site][:idx] = idx
+  metadata[site][:no_js] = result
+
+  File.write(metadata_file, JSON.pretty_generate(metadata))
+end

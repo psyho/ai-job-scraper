@@ -1,0 +1,25 @@
+#!/usr/bin/env ruby
+
+require "faraday"
+
+require "fileutils"
+
+if ARGV.size != 2
+  puts "Usage: #{$0} {sites.txt} {output_dir}"
+  exit 1
+end
+
+sites = File.readlines(ARGV[0]).map(&:chomp)
+output_dir = File.expand_path(ARGV[1])
+
+puts "Downloading #{sites.size} sites to #{output_dir}"
+
+FileUtils.mkdir_p(output_dir)
+
+sites.each_with_index do |site, idx|
+  puts "Downloading #{idx + 1}/#{sites.size}: #{site}"
+
+  response = Faraday.get(site)
+
+  File.write(File.join(output_dir, "#{idx}.html"), response.body)
+end

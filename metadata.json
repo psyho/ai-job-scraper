@@ -15,22 +15,6 @@
     "idx": 3,
     "no_js": true
   },
-  "https://www.europa-uni.de/de/struktur/verwaltung/dezernat_2/stellenausschreibung/index.html": {
-    "idx": 0,
-    "no_js": true
-  },
-  "https://www.fu-berlin.de/universitaet/beruf-karriere/jobs/wiss/a-z-index/index.html?sort=date&keywords=Geschichts-%20und%20Kulturwissenschaften": {
-    "idx": 1,
-    "no_js": false
-  },
-  "https://haushalt-und-personal.hu-berlin.de/de/personal/stellenausschreibungen": {
-    "idx": 2,
-    "no_js": true
-  },
-  "https://personal.verwaltung.uni-halle.de/jobs/wissmi/": {
-    "idx": 3,
-    "no_js": true
-  },
   "https://www.uni-halle.de/universitaet/gremien/senat/legislaturperiode22_26/professorenstellen/": {
     "idx": 4,
     "no_js": true
@@ -45,7 +29,7 @@
   },
   "https://www.uni-rostock.de/stellen/wissenschaftliches-personal/": {
     "idx": 7,
-    "no_js": true
+    "no_js": false
   },
   "https://www.uni-rostock.de/stellen/professuren/": {
     "idx": 8,
@@ -57,11 +41,11 @@
   },
   "https://www.uni-flensburg.de/die-universitaet/aktuelle-stellenangebote": {
     "idx": 10,
-    "no_js": true
+    "no_js": false
   },
   "https://www.uni-kiel.de/personal/de/stellen/extern/wiss": {
     "idx": 11,
-    "no_js": true
+    "no_js": false
   },
   "https://www.berufungen.uni-kiel.de/de/w-2-ausschreibungen": {
     "idx": 12,
@@ -97,7 +81,7 @@
   },
   "https://www.uni-muenster.de/Rektorat/Stellen/index-academics.html": {
     "idx": 20,
-    "no_js": true
+    "no_js": false
   },
   "https://www.uni-muenster.de/Rektorat/Stellen/index-professuren.html": {
     "idx": 21,
@@ -105,15 +89,15 @@
   },
   "https://uni.ruhr-uni-bochum.de/de/stellenangebote": {
     "idx": 22,
-    "no_js": true
+    "no_js": false
   },
   "https://www.lmu.de/de/die-lmu/arbeiten-an-der-lmu/stellenportal/wissenschaft/": {
     "idx": 23,
-    "no_js": true
+    "no_js": false
   },
   "https://www.lmu.de/de/die-lmu/arbeiten-an-der-lmu/stellenportal/professuren/": {
     "idx": 24,
-    "no_js": true
+    "no_js": false
   },
   "https://www.uni-giessen.de/karriere/stellenangebote/ausschreibungen/professuren/": {
     "idx": 25,
@@ -125,11 +109,11 @@
   },
   "https://www.uni-marburg.de/de/universitaet/administration/verwaltung/dezernat2/personalabteilung/bewerber/stellen/wissenschaftliche-stellen": {
     "idx": 27,
-    "no_js": true
+    "no_js": false
   },
   "https://www.uni-marburg.de/de/universitaet/administration/verwaltung/dezernat2/personalabteilung/bewerber/professuren-stellen/professur-stellen": {
     "idx": 28,
-    "no_js": true
+    "no_js": false
   },
   "https://www.uni-goettingen.de/de/305406.html": {
     "idx": 29,
@@ -137,7 +121,7 @@
   },
   "https://www.uni-goettingen.de/de/644546.html": {
     "idx": 30,
-    "no_js": true
+    "no_js": false
   },
   "https://www.uni-frankfurt.de/48794849/FB08___Philosophie_und_Geschichtswissenschaften": {
     "idx": 31,

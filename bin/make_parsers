@@ -1,0 +1,152 @@
+#!/usr/bin/env ruby
+
+require "openai"
+require "json"
+require "nokogiri"
+require "dotenv/load"
+require "fileutils"
+
+if ARGV.size != 2
+  puts "Usage: #{$0} {output_dir} {parsers_dir}"
+  exit 1
+end
+
+CLIENT = OpenAI::Client.new(
+  access_token: ENV["OPENAI_API_KEY"],
+  organization_id: ENV["OPENAI_ORGANIZATION_ID"],
+  log_errors: true,
+)
+
+def prompt(url:, html:)
+  <<~EOF
+    Given the following HTML:
+
+    ```
+    #{html}
+    ```
+
+    downloaded from URL: #{url}
+
+    Identify how the job postings are structured in the HTML.
+
+    Write a ruby function, that takes the HTML string as input, parses it using `nokogiri` (which you can assume is installed and already required),
+    and returns the job postings from the markup as a list of hashes with the following keys: `:name`, `:description`, `:url`.
+
+    DO NOT include any `require` statements or anything besides the `parse_job_postings` method. The returned code must start with `def parse_job_postings(html)` and end with `end`.
+    DO NOT use any complex XPath selectors. Prefer iterating over the elements and simple checks in ruby.
+
+    ```ruby
+    def parse_job_postings(html)
+      # implement this
+    end
+    ```
+  EOF
+end
+
+def update_code_prompt(output:)
+  <<~EOF
+    The code you provided produces the following output for the given HTML:
+
+    ```
+    #{output}
+    ```
+
+    Make sure all the job postings are extracted correctly.
+    Make sure the code correctly extracts the job name and description, and that all the URLs are valid.
+    Make sure all the URLs are absolute and not relative.
+    Filter out results that are not actual job postings.
+
+    Please update the code and provide the corrected version.
+  EOF
+end
+
+def make_parser(url:, html:)
+  response = CLIENT.chat(
+    parameters: {
+      model: "gpt-4-turbo",
+      temperature: 0.0,
+      messages: [{ role: "user", content: prompt(url: url, html: html) }],
+    }
+  )
+
+  response.dig("choices", 0, "message", "content")
+end
+
+def update_parser(url:, html:, results:)
+  results = results.flat_map do |r|
+    [
+      { role: "assistant", content: r.fetch(:model_response) },
+      { role: "user", content: update_code_prompt(output: r.fetch(:output)) },
+    ]
+  end
+
+  response = CLIENT.chat(
+    parameters: {
+      model: "gpt-4-turbo",
+      temperature: 0.0,
+      messages: [
+        { role: "user", content: prompt(url:, html:) },
+        *results,
+      ],
+    }
+  )
+
+  response.dig("choices", 0, "message", "content")
+end
+
+def extract_ruby_method(response)
+  ruby_block = response.match(/```ruby\n(.+?)\n```/m)[1]
+  ruby_block.gsub(/^require.+\n/, "")
+end
+
+def test_code(code:, html:)
+  parser = Object.new
+  parser.instance_eval(code)
+
+  begin
+    output = parser.parse_job_postings(html).inspect
+  rescue => e
+    output = "#{e.class}: #{e.message}\n#{e.backtrace.join("\n")}"
+  end
+  puts output
+
+  output
+end
+
+output_dir = File.expand_path(ARGV[0])
+parsers_dir = File.expand_path(ARGV[1])
+
+metadata_file = "metadata.json"
+metadata = JSON.parse(File.read(metadata_file), symbolize_names: true)
+
+FileUtils.mkdir_p(parsers_dir)
+
+metadata.each do |url, meta|
+  next unless meta[:no_js]
+
+  out_file = File.join(output_dir, "#{meta[:idx]}.html")
+  parser_file = File.join(parsers_dir, "#{meta[:idx]}.rb")
+  next if File.exist?(parser_file)
+
+  html = File.read(out_file)
+  results = []
+
+  response = make_parser(url:, html:)
+  code = extract_ruby_method(response)
+
+  File.write(parser_file, code)
+
+  output = test_code(code:, html:)
+  results << { model_response: response, output: output }
+
+  response = update_parser(url:, html:, results:)
+  code = extract_ruby_method(response)
+  File.write(parser_file, code)
+  output = test_code(code:, html:)
+  results << { model_response: response, output: output }
+
+  response = update_parser(url:, html:, results:)
+  code = extract_ruby_method(response)
+  File.write(parser_file, code)
+  test_code(code:, html:)
+end

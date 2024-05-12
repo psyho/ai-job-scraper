@@ -1,0 +1,34 @@
+#!/usr/bin/env ruby
+
+require "json"
+require "nokogiri"
+require "uri"
+
+metadata = JSON.parse(File.read("metadata.json"), symbolize_names: true)
+
+def make_parser(file_name)
+  parser = Object.new
+  parser.instance_eval(File.read(file_name))
+  parser
+end
+
+metadata.each do |site, meta|
+  next unless meta[:no_js]
+
+  idx = meta[:idx]
+
+  html = File.read("out/#{idx}.html")
+
+  next unless File.exist?("parsers/#{idx}.rb")
+
+  parser = make_parser("parsers/#{idx}.rb")
+
+  print "Testing parser for #{site}: "
+  jobs = parser.parse_job_postings(html)
+
+  if jobs.empty?
+    puts "FAIL"
+  else
+    puts "PASS (#{jobs.size} jobs)"
+  end
+end

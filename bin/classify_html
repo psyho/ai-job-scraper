@@ -24,6 +24,8 @@ def prompt(html)
   ```
 
   Tell me if the HTML above contains a list of job postings.
+  This is only true if the HTML actually contains job posting names, descriptions and URLs.
+  It is not enough for the HTML to link to other pages that may contain job posting details.
 
   Return the result as JSON with the following structure:
   `contains_job_postings` (boolean)
@@ -56,15 +58,15 @@ else
 end
 
 sites.each_with_index do |site, idx|
-  next if metadata.dig(site, :no_js) != nil
+  next if metadata.dig(site.to_sym, :no_js) != nil
 
   output_file = File.join(output_dir, "#{idx}.html")
   html = File.read(output_file)
   result = classify(site:, idx:, html:)
 
-  metadata[site] ||= {}
-  metadata[site][:idx] = idx
-  metadata[site][:no_js] = result
+  metadata[site.to_sym] ||= {}
+  metadata[site.to_sym][:idx] = idx
+  metadata[site.to_sym][:no_js] = result
 
   File.write(metadata_file, JSON.pretty_generate(metadata))
 end

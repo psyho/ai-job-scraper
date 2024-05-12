@@ -12,6 +12,9 @@ GEM
     multipart-post (2.4.1)
     net-http (0.4.1)
       uri
+    nokogiri (1.16.4-x86_64-linux)
+      racc (~> 1.4)
+    racc (1.7.3)
     ruby-openai (7.0.1)
       event_stream_parser (>= 0.3.0, < 2.0.0)
       faraday (>= 1)
@@ -24,6 +27,7 @@ PLATFORMS
 DEPENDENCIES
   dotenv (~> 3.1)
   faraday (~> 2.9)
+  nokogiri (~> 1.16)
   ruby-openai (~> 7.0)
 
 BUNDLED WITH

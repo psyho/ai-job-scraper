@@ -4,6 +4,13 @@ require "json"
 require "nokogiri"
 require "uri"
 
+if ARGV.size != 1
+  puts "Usage: #{$0} {output_dir}"
+  exit 1
+end
+
+output_dir = ARGV[0]
+
 metadata = JSON.parse(File.read("metadata.json"), symbolize_names: true)
 
 def make_parser(file_name)
@@ -13,17 +20,17 @@ def make_parser(file_name)
 end
 
 metadata.each do |site, meta|
-  next unless meta[:no_js]
-
   idx = meta[:idx]
 
-  html = File.read("out/#{idx}.html")
+  next unless File.exist?("#{output_dir}/#{idx}.html")
+
+  html = File.read("#{output_dir}/#{idx}.html")
 
   next unless File.exist?("parsers/#{idx}.rb")
 
   parser = make_parser("parsers/#{idx}.rb")
 
-  print "Testing parser for #{site}: "
+  print "Testing parser #{idx} for #{site}: "
   jobs = parser.parse_job_postings(html)
 
   if jobs.empty?

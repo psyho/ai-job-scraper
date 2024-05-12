@@ -1,0 +1,22 @@
+#!/usr/bin/env ruby
+
+require "watir"
+require "fileutils"
+
+if ARGV.size != 3
+  puts "Usage: #{$0} {output_dir} {idx} {url}"
+  exit 1
+end
+
+output_dir = ARGV[0]
+FileUtils.mkdir_p(output_dir)
+
+idx = ARGV[1].to_i
+url = ARGV[2]
+
+browser = Watir::Browser.new(:chrome, headless: true)
+out_file = File.join(output_dir, "#{idx}.html")
+browser.goto(url)
+sleep 60
+File.write(out_file, browser.html)
+browser.close

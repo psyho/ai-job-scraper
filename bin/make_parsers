@@ -122,11 +122,13 @@ metadata = JSON.parse(File.read(metadata_file), symbolize_names: true)
 FileUtils.mkdir_p(parsers_dir)
 
 metadata.each do |url, meta|
-  next unless meta[:no_js]
-
   out_file = File.join(output_dir, "#{meta[:idx]}.html")
+  next unless File.exist?(out_file)
+
   parser_file = File.join(parsers_dir, "#{meta[:idx]}.rb")
   next if File.exist?(parser_file)
+
+  puts "Generating parser for #{url}..."
 
   html = File.read(out_file)
   results = []

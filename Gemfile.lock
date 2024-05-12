@@ -1,6 +1,7 @@
 GEM
   remote: https://rubygems.org/
   specs:
+    base64 (0.2.0)
     dotenv (3.1.2)
     event_stream_parser (1.0.0)
     faraday (2.9.0)
@@ -15,11 +16,23 @@ GEM
     nokogiri (1.16.4-x86_64-linux)
       racc (~> 1.4)
     racc (1.7.3)
+    regexp_parser (2.9.1)
+    rexml (3.2.6)
     ruby-openai (7.0.1)
       event_stream_parser (>= 0.3.0, < 2.0.0)
       faraday (>= 1)
       faraday-multipart (>= 1)
+    rubyzip (2.3.2)
+    selenium-webdriver (4.20.1)
+      base64 (~> 0.2)
+      rexml (~> 3.2, >= 3.2.5)
+      rubyzip (>= 1.2.2, < 3.0)
+      websocket (~> 1.0)
     uri (0.13.0)
+    watir (7.3.0)
+      regexp_parser (>= 1.2, < 3)
+      selenium-webdriver (~> 4.2)
+    websocket (1.2.10)
 
 PLATFORMS
   x86_64-linux
@@ -29,6 +42,7 @@ DEPENDENCIES
   faraday (~> 2.9)
   nokogiri (~> 1.16)
   ruby-openai (~> 7.0)
+  watir (~> 7.3)
 
 BUNDLED WITH
    2.4.14

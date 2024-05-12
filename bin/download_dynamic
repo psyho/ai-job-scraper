@@ -1,0 +1,28 @@
+#!/usr/bin/env ruby
+
+require "watir"
+require "fileutils"
+
+if ARGV.size != 1
+  puts "Usage: #{$0} {output_dir}"
+  exit 1
+end
+
+output_dir = ARGV[0]
+FileUtils.mkdir_p(output_dir)
+
+metadata = JSON.parse(File.read("metadata.json"), symbolize_names: true)
+browser = Watir::Browser.new(:chrome, headless: true)
+
+metadata.each do |site, meta|
+  next if meta[:no_js]
+
+  out_file = File.join(output_dir, "#{meta[:idx]}.html")
+  next if File.exist?(out_file)
+
+  browser.goto(site)
+  sleep 60
+  File.write(out_file, browser.html)
+end
+
+browser.close

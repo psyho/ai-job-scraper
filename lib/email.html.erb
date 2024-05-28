@@ -1,0 +1,26 @@
+<html lang="pl">
+<head>
+    <title>Nowe Oferty Pracy</title>
+</head>
+<body>
+    <p>Cześć!</p>
+
+    <p>Skrypt znalazł nowe oferty pracy, które pasują do słów kluczowych:</p>
+
+    <% jobs_by_site.each do |site, jobs| %>
+        <h2>Na stronie <a href="<%= site %>"><%= site %></a>:</h2>
+
+        <dl>
+            <% jobs.each do |job| %>
+                <dt><a href="<%= job.url %>"><%= job.name %></a></dt>
+                <dd><%= job.description %></dd>
+            <% end %>
+        </dl>
+    <% end %>
+
+    <p>Jeśli jakiś link nie działa, to spróbuj wejść przez link do strony głównej z ofertami.</p>
+
+    <p>Pozdro!</p>
+    <p>Adam</p>
+</body>
+</html>

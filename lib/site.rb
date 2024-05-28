@@ -4,6 +4,7 @@ require_relative "simple_downloader"
 require_relative "dynamic_downloader"
 
 require "json"
+require "parallel"
 
 Site = Data.define(:url, :idx, :no_js) do
   def self.all
@@ -15,7 +16,7 @@ Site = Data.define(:url, :idx, :no_js) do
   end
 
   def self.fetch_all_listings
-    all.flat_map(&:fetch_listings)
+    Parallel.flat_map(Site.all, in_threads: THREAD_COUNT, &:fetch_listings)
   end
 
   def parser

@@ -21,9 +21,9 @@ class Parser
 
   def parse(html)
     try_parse(html).map do |hash|
-      JobPosting.new(name: hash[:name],
-                     description: hash[:description],
-                     url: hash[:url],
+      JobPosting.new(name: hash[:name].to_s,
+                     description: hash[:description].to_s,
+                     url: (hash[:url] || @site_url).to_s,
                      site_url: @site_url,
                      downloaded_at: Time.now)
     end

@@ -4,12 +4,20 @@ require "faraday"
 require "faraday/follow_redirects"
 
 class SimpleDownloader
-  def fetch_listings(url, parser)
+  def fetch_listings(url, parser, tries = 3)
+    if tries <= 0
+      LOGGER.error("Failed to fetch listings from #{url} after 3 tries")
+      return []
+    end
+
     LOGGER.info("Fetching listings from #{url}")
     html = fetch(url)
     listings = parser.parse(html)
     LOGGER.info("Fetched #{listings.size} listings from #{url}")
     listings
+  rescue StandardError => e
+    LOGGER.warn("Failed to fetch listings from #{url}: #{e.message}\n#{e.backtrace.join("\n")}")
+    fetch_listings(url, parser, tries - 1)
   end
 
   private

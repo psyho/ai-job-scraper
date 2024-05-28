@@ -1,31 +1,26 @@
 def parse_job_postings(html)
   require 'nokogiri'
-  
-  # Base URL for constructing absolute URLs
-  base_url = "https://www.leuphana.de"
-  
-  # Parse the HTML content
   doc = Nokogiri::HTML(html)
-  
-  # Find all job postings within the specific news list section
-  job_postings = doc.css('.frame-type-news_newsliststicky .c-preview-item--news')
-  
-  # Extract details from each job posting
-  jobs = job_postings.map do |job|
-    # Extract the URL and make it absolute
-    relative_url = job.at_css('a')&.[]('href')
-    absolute_url = relative_url ? URI.join(base_url, relative_url).to_s : nil
-    
-    name = job.at_css('.c-preview-item__text')&.text&.strip
-    description = job.at_css('.c-preview-item__text')&.text&.strip
+  job_postings = []
 
-    {
-      name: name,
-      description: description,
-      url: absolute_url
-    }
+  # Extract the job listing from the first section
+  doc.css('.c-preview-item').each do |item|
+    name = item.css('.c-preview-item__text').text.strip
+    url = item.css('a').first['href']
+    url = "https://www.leuphana.de#{url}" unless url.start_with?('http')
+    description = "Not explicitly provided in the HTML snippet."
+    job_postings << { name: name, description: description, url: url }
   end
-  
-  # Filter out entries without a valid URL, name, or description
-  jobs.reject { |job| job[:name].nil? || job[:url].nil? || job[:description].nil? }
+
+  # Extract the job listings from the second section
+  doc.css('.c-content-menu__link').each do |item|
+    name = item.text.strip
+    description_element = item.parent.next_element
+    description = description_element ? description_element.text.strip : "Description not provided."
+    next if name.empty? || description.empty? || description == "Description not provided."
+    url = "Not provided in the HTML snippet."
+    job_postings << { name: name, description: description, url: url }
+  end
+
+  job_postings
 end

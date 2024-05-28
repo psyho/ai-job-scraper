@@ -1,28 +1,27 @@
 def parse_job_postings(html)
-  require 'nokogiri'
-  
-  # Parse the HTML content
   doc = Nokogiri::HTML(html)
-  
-  # Find all job postings
-  postings = doc.css('.plugin-list__content--full-width')
-  
-  # Extract details from each posting
-  jobs = postings.map do |posting|
-    # Extract the link element which contains the job details
-    link = posting.at_css('a.teaserbox')
+  job_postings = []
+
+  doc.css('.plugin-list__content--full-width').each do |job_element|
+    job = {}
     
-    # Check if the necessary elements are present
-    next unless link && link.at_css('h3') && link.at_css('p')
+    title_element = job_element.at_css('h3.h2-style')
+    next unless title_element
     
-    # Extract job name, description, and URL
-    {
-      name: link.at_css('h3').text.strip,
-      description: link.at_css('p').text.gsub(/\s+/, ' ').strip,
-      url: "https://www.uni-greifswald.de" + link['href']
-    }
+    job[:name] = title_element.text.strip
+    
+    description_element = job_element.at_css('p')
+    next unless description_element
+    
+    job[:description] = description_element.text.strip.gsub(/\s+/, ' ')
+    
+    url_element = job_element.at_css('a.teaserbox')
+    next unless url_element
+    
+    job[:url] = URI.join("https://www.uni-greifswald.de", url_element['href']).to_s
+    
+    job_postings << job
   end
-  
-  # Remove nil entries and return the jobs array
-  jobs.compact
+
+  job_postings
 end

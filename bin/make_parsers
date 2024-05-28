@@ -15,9 +15,10 @@ CLIENT = OpenAI::Client.new(
   access_token: ENV["OPENAI_API_KEY"],
   organization_id: ENV["OPENAI_ORGANIZATION_ID"],
   log_errors: true,
+  request_timeout: 240,
 )
 
-def prompt(url:, html:)
+def initial_prompt(url:, html:)
   <<~EOF
     Given the following HTML:
 
@@ -27,13 +28,26 @@ def prompt(url:, html:)
 
     downloaded from URL: #{url}
 
-    Identify how the job postings are structured in the HTML.
+    Identify the job listings in the HTML and return:
 
-    Write a ruby function, that takes the HTML string as input, parses it using `nokogiri` (which you can assume is installed and already required),
+    - The job title
+    - The job description (including relevant details such as department, application deadline, hours/week, etc.)
+    - The URL to the job posting, which should be an absolute URL
+    ```
+  EOF
+end
+
+def write_code_prompt
+  <<~EOF
+    Write a ruby function, that takes a HTML string (like the one provided previously) as input, parses it using `nokogiri` (which you can assume is installed and already required),
     and returns the job postings from the markup as a list of hashes with the following keys: `:name`, `:description`, `:url`.
+
+    Make sure all the listings you returned previously are included in the output.
 
     DO NOT include any `require` statements or anything besides the `parse_job_postings` method. The returned code must start with `def parse_job_postings(html)` and end with `end`.
     DO NOT use any complex XPath selectors. Prefer iterating over the elements and simple checks in ruby.
+    DO NOT include any instructions about how to use the code. Just the `parse_job_postings` method. Nothing else.
+    If you include example usage, you fail the assignment.
 
     ```ruby
     def parse_job_postings(html)
@@ -51,21 +65,42 @@ def update_code_prompt(output:)
     #{output}
     ```
 
-    Make sure all the job postings are extracted correctly.
+    First, describe what the code does correctly and what it does incorrectly.
+
+    Make sure that the number of listings returned is correct.
     Make sure the code correctly extracts the job name and description, and that all the URLs are valid.
     Make sure all the URLs are absolute and not relative.
     Filter out results that are not actual job postings.
 
-    Please update the code and provide the corrected version.
+    Please update the code and provide the corrected version based on your critique.
+
+    DO NOT include any instructions about how to use the code. Just the `parse_job_postings` method. Nothing else.
+    If you include example usage, you fail the assignment.
   EOF
 end
 
-def make_parser(url:, html:)
+def list_job_postings(url:, html:)
   response = CLIENT.chat(
     parameters: {
-      model: "gpt-4-turbo",
+      model: "gpt-4o",
       temperature: 0.0,
-      messages: [{ role: "user", content: prompt(url: url, html: html) }],
+      messages: [{ role: "user", content: initial_prompt(url: url, html: html) }],
+    }
+  )
+
+  response.dig("choices", 0, "message", "content")
+end
+
+def make_parser(url:, html:, job_postings_response:)
+  response = CLIENT.chat(
+    parameters: {
+      model: "gpt-4o",
+      temperature: 0.0,
+      messages: [
+        { role: "user", content: initial_prompt(url: url, html: html) },
+        { role: "assistant", content: job_postings_response },
+        { role: "user", content: write_code_prompt },
+      ],
     }
   )
 
@@ -82,10 +117,10 @@ def update_parser(url:, html:, results:)
 
   response = CLIENT.chat(
     parameters: {
-      model: "gpt-4-turbo",
+      model: "gpt-4o",
       temperature: 0.0,
       messages: [
-        { role: "user", content: prompt(url:, html:) },
+        { role: "user", content: initial_prompt(url:, html:) },
         *results,
       ],
     }
@@ -122,33 +157,50 @@ metadata = JSON.parse(File.read(metadata_file), symbolize_names: true)
 FileUtils.mkdir_p(parsers_dir)
 
 metadata.each do |url, meta|
-  out_file = File.join(output_dir, "#{meta[:idx]}.html")
-  next unless File.exist?(out_file)
+  tries = 3
 
-  parser_file = File.join(parsers_dir, "#{meta[:idx]}.rb")
-  next if File.exist?(parser_file)
+  begin
+    out_file = File.join(output_dir, "#{meta[:idx]}.html")
+    next unless File.exist?(out_file)
 
-  puts "Generating parser for #{url}..."
+    parser_file = File.join(parsers_dir, "#{meta[:idx]}.rb")
+    next if File.exist?(parser_file)
 
-  html = File.read(out_file)
-  results = []
+    puts "Generating parser for #{url}..."
 
-  response = make_parser(url:, html:)
-  code = extract_ruby_method(response)
+    html = File.read(out_file)
+    results = []
 
-  File.write(parser_file, code)
+    job_postings_response = list_job_postings(url:, html:)
+    puts "Job postings for #{url}:\n\n #{job_postings_response}"
 
-  output = test_code(code:, html:)
-  results << { model_response: response, output: output }
+    response = make_parser(url:, html:, job_postings_response:)
+    code = extract_ruby_method(response)
 
-  response = update_parser(url:, html:, results:)
-  code = extract_ruby_method(response)
-  File.write(parser_file, code)
-  output = test_code(code:, html:)
-  results << { model_response: response, output: output }
+    File.write(parser_file, code)
 
-  response = update_parser(url:, html:, results:)
-  code = extract_ruby_method(response)
-  File.write(parser_file, code)
-  test_code(code:, html:)
+    output = test_code(code:, html:)
+    results << { model_response: response, output: output }
+
+    response = update_parser(url:, html:, results:)
+    code = extract_ruby_method(response)
+    File.write(parser_file, code)
+    output = test_code(code:, html:)
+    results << { model_response: response, output: output }
+
+    response = update_parser(url:, html:, results:)
+    code = extract_ruby_method(response)
+    File.write(parser_file, code)
+    output = test_code(code:, html:)
+
+    if output.include?("Error") || output == "[]"
+      fail "Failed to generate parser for #{url}, last output: #{output}"
+    end
+  rescue StandardError => e
+    puts e
+    puts e.backtrace
+    tries -= 1
+
+    retry if tries >= 0
+  end
 end

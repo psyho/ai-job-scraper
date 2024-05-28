@@ -1,41 +1,47 @@
 def parse_job_postings(html)
-  require 'nokogiri'
-  
-  # Parse the HTML content
   doc = Nokogiri::HTML(html)
-  
-  # Find the table with class 'line' and iterate over its rows
+  base_url = "https://www.uni-giessen.de"
   job_postings = []
-  doc.css('table.line tr').each_with_index do |row, index|
-    # Skip the header row
-    next if index == 0
-    
-    # Extract job details from the row
-    cells = row.css('td')
-    next if cells.empty? || cells[0].css('a').empty?
-    
-    # Extracting job name and URL
-    job_name_links = cells[0].css('a')
-    job_names = job_name_links.map(&:text).join(' / ')
-    job_urls = job_name_links.map { |link| link['href'] }.join(' / ')
-    
-    # Ensure URLs are absolute
-    job_urls = job_urls.split(' / ').map do |url|
-      url.start_with?('http') ? url : "https://www.uni-giessen.de#{url}"
-    end.join(' / ')
-    
-    # Extracting the organization area (description)
-    organization_area = cells[2].text.strip
-    
-    # Ensure that the description is not empty or generic
-    next if organization_area.empty? || organization_area == 'Organisationsbereich'
-    
+
+  job_table = doc.at('table.line')
+  return job_postings unless job_table
+
+  job_table.css('tr')[1..-1].each do |row|
+    columns = row.css('td')
+    next if columns.size < 8
+
+    job_title_element = columns[0].at('a')
+    next unless job_title_element
+
+    job_title = job_title_element.text.strip
+    job_link = job_title_element['href']
+    job_link = base_url + job_link unless job_link.start_with?('http')
+
+    department = columns[2].text.strip
+    organization = columns[3].text.strip
+    duration = columns[4].text.strip
+    salary = columns[5].text.strip
+    reference_number = columns[6].text.strip
+    application_deadline = columns[7].text.strip
+
+    # Filter out non-job postings
+    next if job_title.empty? || department.empty? || organization.empty?
+
+    job_description = <<~DESC
+      Department: #{department}
+      Organization: #{organization}
+      Duration: #{duration}
+      Salary: #{salary}
+      Reference Number: #{reference_number}
+      Application Deadline: #{application_deadline}
+    DESC
+
     job_postings << {
-      name: job_names,
-      description: organization_area,
-      url: job_urls
+      name: job_title,
+      description: job_description.strip,
+      url: job_link
     }
   end
-  
+
   job_postings
 end

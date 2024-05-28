@@ -1,38 +1,29 @@
 def parse_job_postings(html)
   require 'nokogiri'
-  
-  # Parse the HTML content
+  require 'uri'
+
   doc = Nokogiri::HTML(html)
-  
-  # Initialize an array to store the job postings
   job_postings = []
-  
-  # Find the table rows that contain job postings
-  job_rows = doc.css('table tr')
-  
-  # Iterate over each row to extract job details
-  job_rows.each do |row|
-    # Skip rows that do not have the expected structure or do not contain job relevant data
-    next unless row.css('td').size >= 3
-    
-    # Extract job name, description, and URL from the columns
-    name = row.css('td')[0].text.strip
-    description = row.css('td')[1].text.strip
-    url_element = row.css('td')[1].css('a').first
-    
-    # Skip rows that do not contain meaningful names or descriptions
-    next if name.empty? || description.empty? || name == "Einrichtung/Lehrstuhl"
-    
-    # Extract the URL if it exists and is a valid link
-    url = url_element && url_element['href'] && (url_element['href'].start_with?('http', '/')) ? url_element['href'] : nil
-    
-    # Create a hash for the job posting and add it to the list
-    job_postings << {
-      name: name,
-      description: description,
-      url: url
-    }
+
+  base_url = 'https://www.europa-uni.de/de/struktur/verwaltung/dezernat_2/stellenausschreibung/'
+
+  doc.css('.box_blau').each do |box|
+    job = {}
+    job[:name] = box.at_css('span strong')&.text || box.at_css('strong')&.text
+    next unless job[:name] && job[:name].match(/(akademisches|nichtwissenschaftliches|studentisches|Professuren|Berufsausbildung)/i)
+
+    description = []
+    box.xpath('following-sibling::div').each do |sibling|
+      break if sibling['class'] == 'box_blau'
+      description << sibling.text.strip
+    end
+    job[:description] = description.join("\n")
+
+    url = box.xpath('following-sibling::div//a').map { |a| a['href'] }.find { |href| href && !href.include?('#mce_temp_url#') }
+    job[:url] = url ? URI.join(base_url, url).to_s : nil
+
+    job_postings << job if job[:url]
   end
-  
+
   job_postings
 end

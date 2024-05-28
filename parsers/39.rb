@@ -1,28 +1,22 @@
 def parse_job_postings(html)
-  require 'nokogiri'
-  
-  # Parse the HTML content
   doc = Nokogiri::HTML(html)
-  
-  # Find all job posting entries within the specific container for job postings
-  entries = doc.css('.entries .entry')
-  
-  # Extract details from each entry
-  job_postings = entries.map do |entry|
-    name = entry.at_css('.title a')&.text&.strip
-    description = entry.at_css('.institution')&.text&.strip || ""
-    url = entry.at_css('.title a')&.[]('href')&.strip
-    
-    # Ensure that only valid job postings with URLs are included
-    if url && !url.empty? && name && !name.empty?
-      {
-        name: name,
-        description: description,
-        url: url
-      }
+  job_postings = []
+
+  doc.css('.entry').each do |entry|
+    next unless entry.css('.title a').any? # Skip entries without job postings
+
+    job = {}
+    job[:name] = entry.css('.title a').text.strip
+    job[:description] = entry.css('.institution').text.strip
+    job[:url] = entry.css('.title a').attr('href')&.value
+
+    # Ensure the URL is absolute
+    if job[:url] && !job[:url].start_with?('http')
+      job[:url] = "https://www.uni-jena.de#{job[:url]}"
     end
+
+    job_postings << job if job[:url] # Only include jobs with valid URLs
   end
-  
-  # Remove nil entries and return the job postings
-  job_postings.compact
+
+  job_postings
 end

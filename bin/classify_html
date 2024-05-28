@@ -35,7 +35,7 @@ end
 def classify(site:, idx:, html:)
   response = CLIENT.chat(
     parameters: {
-      model: "gpt-4-turbo",
+      model: "gpt-4o",
       temperature: 0.0,
       response_format: { type: "json_object" },
       messages: [{ role: "user", content: prompt(html) }],

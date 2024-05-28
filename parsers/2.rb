@@ -1,40 +1,37 @@
 def parse_job_postings(html)
   require 'nokogiri'
-  
-  # Parse the HTML content
+  require 'uri'
+
   doc = Nokogiri::HTML(html)
-  
-  # Find the job listings container
-  job_listings = doc.css('dl.jobListing')
-  
-  # Initialize an array to store job postings
-  jobs = []
-  
-  # Iterate over each job listing
-  job_listings.each do |listing|
-    # Each job is contained within <dd> tags
-    listing.css('dd').each do |job|
-      # Extract job name and URL
-      job_name = job.at_css('a').text.strip
-      job_url = job.at_css('a')['href']
-      
-      # Extract additional details like department and deadline
-      department = job.css('p strong').first.text.strip rescue nil
-      deadline = job.css('small span').last.text.strip rescue nil
-      
-      # Construct a hash for the job and add it to the jobs array
-      jobs << {
-        name: job_name,
-        description: "#{department}, Bewerbung bis: #{deadline}",
-        url: job_url
-      }
+  base_url = "https://haushalt-und-personal.hu-berlin.de"
+  job_listings = []
+
+  job_listing_section = doc.at('dl.jobListing')
+
+  if job_listing_section
+    job_listing_section.css('dd').each do |job_entry|
+      job = {}
+
+      job_link = job_entry.at('a')
+      if job_link
+        job[:name] = job_link.text.strip
+        job[:url] = URI.join(base_url, job_link['href']).to_s
+      end
+
+      job_description = job_entry.at('p')
+      if job_description
+        job[:description] = job_description.text.strip
+      end
+
+      job_details = job_entry.css('small').map(&:text).join(' ')
+      job[:details] = job_details.strip unless job_details.empty?
+
+      # Filter out non-job postings
+      if job[:name] && job[:url] && job[:url].include?('/de/personal/stellenausschreibungen/')
+        job_listings << job
+      end
     end
   end
-  
-  # Filter out entries that do not seem to be job postings (e.g., missing crucial information)
-  jobs.select! do |job|
-    job[:name] != "" && job[:url].include?("stellenausschreibungen") && job[:description].include?("Bewerbung bis:")
-  end
-  
-  jobs
+
+  job_listings
 end

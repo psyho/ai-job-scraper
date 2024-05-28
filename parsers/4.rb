@@ -1,29 +1,31 @@
 def parse_job_postings(html)
   require 'nokogiri'
-  
-  # Parse the HTML content
+  require 'uri'
+
   doc = Nokogiri::HTML(html)
-  
-  # Find all job posting containers
-  postings = doc.css('div.news')
-  
-  # Extract details from each posting
-  job_postings = postings.map do |posting|
-    # Extract the job name
-    name = posting.at_css('h3').text.strip
-    
-    # Extract and clean the description
-    description_parts = posting.css('p').map(&:text).map(&:strip)
-    description = description_parts.join(' ').gsub(/\s*\[ mehr \.\.\. \]\s*/, ' ').strip
-    
-    # Extract the URL and validate it
-    url = posting.at_css('a.mehr')['href'].strip if posting.at_css('a.mehr')
-    
-    # Ensure the URL is valid
-    next unless url && url.start_with?('https://')
-    
-    { name: name, description: description, url: url }
+  job_postings = []
+
+  doc.css('.news').each do |news_item|
+    job = {}
+    job[:name] = news_item.css('h3').text.strip
+
+    description_parts = []
+    news_item.css('p').each do |p|
+      description_parts << p.text.strip
+    end
+    job[:description] = description_parts.join("\n")
+
+    more_link = news_item.css('a.mehr').first
+    if more_link
+      uri = URI.parse(more_link['href'])
+      job[:url] = uri.absolute? ? more_link['href'] : "https://www.uni-halle.de#{more_link['href']}"
+    end
+
+    # Filter out non-job postings
+    if job[:name].downcase.include?('professur') || job[:name].downcase.include?('professorship')
+      job_postings << job
+    end
   end
-  
-  job_postings.compact # Remove nil entries resulting from 'next unless'
+
+  job_postings
 end

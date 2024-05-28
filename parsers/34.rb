@@ -1,28 +1,33 @@
 def parse_job_postings(html)
   require 'nokogiri'
-  
-  # Parse the HTML content
+  require 'open-uri'
+
+  def fetch_iframe_content(url)
+    Nokogiri::HTML(URI.open(url))
+  end
+
   doc = Nokogiri::HTML(html)
-  
-  # Base URL for constructing absolute URLs
-  base_url = "https://jobs.fernuni-hagen.de"
-  
-  # Find all job postings
-  job_tiles = doc.css('li.job-tile')
-  
-  # Extract details from each job posting
-  jobs = job_tiles.map do |job_tile|
-    # Construct the absolute URL
-    relative_url = job_tile.at_css('.tiletitle a')['href']
-    absolute_url = base_url + relative_url
-    
-    {
-      name: job_tile.at_css('.tiletitle a').text.strip,
-      description: job_tile.css('.section-field').map { |field| "#{field.text.strip.gsub(/\s+/, ' ')}" }.uniq.join(' '),
-      url: absolute_url
+  iframe_url = doc.at_css('iframe')['src']
+  iframe_doc = fetch_iframe_content(iframe_url)
+
+  job_postings = []
+
+  iframe_doc.css('a').each do |job_link|
+    job_title = job_link.text.strip
+    job_url = job_link['href']
+    next unless job_url.include?('index') # Filter out non-job posting links
+
+    job_url = "https://www.fernuni-hagen.de#{job_url}" unless job_url.start_with?('http')
+
+    job_page = fetch_iframe_content(job_url)
+    job_description = job_page.css('p, .job-description').map(&:text).join("\n").strip
+
+    job_postings << {
+      name: job_title,
+      description: job_description,
+      url: job_url
     }
   end
-  
-  # Filter out any invalid job postings if necessary
-  jobs.select { |job| job[:name] != '' && job[:url] != base_url }
+
+  job_postings
 end

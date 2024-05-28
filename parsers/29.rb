@@ -1,30 +1,31 @@
 def parse_job_postings(html)
-  require 'nokogiri'
-  
-  # Parse the HTML content
   doc = Nokogiri::HTML(html)
-  
-  # Find the job postings table by its unique structure
   job_postings = []
-  table = doc.css('table').find { |t| t.css('td').any? { |td| td.text.include?('Stellenbezeichnung') } }
-  
-  # Iterate over each row in the table, skipping the header row
-  table.css('tr')[1..-1].each do |row|
-    cells = row.css('td')
-    next if cells.empty? || cells[0].css('a').empty?  # Skip empty rows or rows without a link
-    
-    # Extract job name and URL
-    name = cells[0].text.strip
-    url = cells[0].css('a')[0]['href'].strip
-    next unless url.start_with?('http')  # Ensure URL is absolute
 
-    # Extract description from subsequent cells, excluding empty or placeholder cells
-    description_parts = cells[1..-1].map { |cell| cell.text.strip }.reject(&:empty?)
-    description = description_parts.join(', ')
-    
-    # Append the job posting to the list if it contains meaningful information
-    job_postings << { name: name, description: description, url: url } unless name.empty? || description.empty?
+  table = doc.at('div#ext-gen1978 table')
+  return job_postings unless table
+
+  table.css('tr').each_with_index do |row, index|
+    next if index == 0 # Skip the header row
+
+    cells = row.css('td')
+    next if cells.empty? || cells[0].text.strip.empty?
+
+    job_title = cells[0].at('a')&.text&.strip
+    department = cells[1]&.text&.strip
+    rank = cells[2]&.text&.strip
+    application_deadline = cells[3]&.text&.strip
+    url = cells[0].at('a')&.[]('href')
+
+    # Filter out rows that are not actual job postings
+    next unless job_title && department && url && !job_title.empty? && !department.empty? && !url.empty?
+
+    job_postings << {
+      name: job_title,
+      description: "Department: #{department}, Rank: #{rank}, Application Deadline: #{application_deadline}",
+      url: url.start_with?('http') ? url : "https://www.uni-goettingen.de#{url}"
+    }
   end
-  
+
   job_postings
 end

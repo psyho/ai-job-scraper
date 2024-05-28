@@ -1,25 +1,18 @@
 def parse_job_postings(html)
-  require 'nokogiri'
-  
-  # Base URL for absolute paths
-  base_url = "https://www.fu-berlin.de"
-  
-  # Parse the HTML content
   doc = Nokogiri::HTML(html)
-  
-  # Find all job posting containers
-  postings = doc.css('.box-keywords-list-item')
-  
-  # Map each posting to a hash with the required details
-  postings.map do |posting|
-    # Construct the absolute URL
-    relative_url = posting.at_css('a')[:href]
-    absolute_url = base_url + relative_url
-    
-    {
-      name: posting.at_css('h3').text.strip,
-      description: posting.at_css('p').text.strip.gsub("\n", " ").squeeze(" "),
-      url: absolute_url
-    }
+  job_postings = []
+
+  doc.css('.box-keywords-list-item').each do |item|
+    job = {}
+    job[:name] = item.at_css('.box-keywords-list-title').text.strip
+    job[:description] = item.at_css('.box-keywords-list-abstract').text.strip
+    job[:url] = URI.join("https://www.fu-berlin.de", item.at_css('a')['href']).to_s
+
+    # Filter out non-job postings by checking if the description contains "Bewerbungsende"
+    if job[:description].include?("Bewerbungsende")
+      job_postings << job
+    end
   end
+
+  job_postings
 end

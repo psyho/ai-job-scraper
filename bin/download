@@ -1,6 +1,7 @@
 #!/usr/bin/env ruby
 
 require "faraday"
+require "faraday/follow_redirects"
 
 require "fileutils"
 
@@ -22,10 +23,25 @@ rescue Encoding::UndefinedConversionError
   str.force_encoding('iso-8859-1').encode('utf-8')
 end
 
-sites.each_with_index do |site, idx|
-  puts "Downloading #{idx + 1}/#{sites.size}: #{site}"
+metadata = JSON.parse(File.read("metadata.json"), symbolize_names: true)
 
-  response = Faraday.get(site)
+metadata.each do |site, meta|
+  next unless meta[:no_js]
 
-  File.write(File.join(output_dir, "#{idx}.html"), fix_encoding(response.body))
+  site = site.to_s
+  idx = meta[:idx]
+
+  out_file = File.join(output_dir, "#{idx}.html")
+  next if File.exist?(out_file)
+
+  puts "Downloading #{idx + 1}/#{metadata.size}: #{site}"
+
+  faraday = Faraday.new do |cfg|
+    cfg.response :follow_redirects
+    cfg.adapter Faraday.default_adapter
+  end
+
+  response = faraday.get(site)
+
+  File.write(out_file, fix_encoding(response.body))
 end

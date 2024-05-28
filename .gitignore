@@ -1,5 +1,6 @@
 out
 out-dynamic
 .idea
+db
 .env
 jobs.db

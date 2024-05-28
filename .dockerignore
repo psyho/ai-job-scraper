@@ -1,0 +1,9 @@
+.idea
+out
+out-dynamic
+jobs.db
+Dockerfile
+.gitignore
+.git
+.dockerignore
+db

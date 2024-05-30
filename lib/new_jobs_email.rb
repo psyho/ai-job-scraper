@@ -2,7 +2,11 @@ require "tilt"
 require "tilt/erb"
 require "pony"
 
+require_relative "tracing"
+
 class NewJobsEmail
+  include Tracing
+
   def self.deliver(jobs_by_site)
     template = Tilt::ERBTemplate.new(File.expand_path("email.html.erb", __dir__))
     html = template.render(Object.new, jobs_by_site:)
@@ -23,4 +27,5 @@ class NewJobsEmail
       }
     )
   end
+  class_span :deliver
 end

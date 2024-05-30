@@ -24,4 +24,4 @@ RUN mkdir -p db
 RUN adduser --system --shell /bin/bash --group --home /home/app app && chown -R app:app db
 USER app:app
 
-CMD bundle exec ruby bin/run db/jobs.json
+CMD bundle exec rake run

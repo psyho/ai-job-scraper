@@ -1,7 +1,12 @@
 require_relative "constants"
 require_relative "job_posting"
+require_relative "tracing"
+
+require "nokogiri"
 
 class Parser
+  include Tracing
+
   NotFoundError = Class.new(StandardError)
 
   def self.for_site(site)
@@ -28,6 +33,7 @@ class Parser
                      downloaded_at: Time.now)
     end
   end
+  span :parse
 
   private
 
@@ -35,6 +41,7 @@ class Parser
     @parser_object.parse_job_postings(html)
   rescue StandardError => e
     LOGGER.error("Error parsing job postings: #{e.message} #{e.backtrace.join("\n")}")
+    active_span.record_exception(e)
     []
   end
 end

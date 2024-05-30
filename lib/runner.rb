@@ -45,7 +45,7 @@ class Runner
     new_jobs_by_site.each do |site_url, jobs|
       Tracing.start_span("new_jobs") do |span|
         span.add_field("site_url", site_url)
-        span.add_field("count", jobs.size)
+        span.add_field("jobs_count", jobs.size)
       end
     end
 

@@ -11,11 +11,11 @@ JobPosting = Data.define(:name, :description, :url, :site_url, :downloaded_at) d
 
   def self.load_db(db_file)
     unless File.exist?(db_file)
-      active_span.set_attribute("db_file.exists", false)
+      active_span.add_field("db_file.exists", false)
       return []
     end
 
-    active_span.set_attribute("db_file.exists", true)
+    active_span.add_field("db_file.exists", true)
     File.open(db_file, "r") do |f|
       postings = JSON.load(f).map do |attrs|
         new(
@@ -27,14 +27,14 @@ JobPosting = Data.define(:name, :description, :url, :site_url, :downloaded_at) d
         )
       end
 
-      active_span.set_attribute("job_postings.count", postings.size)
+      active_span.add_field("job_postings.count", postings.size)
       postings
     end
   end
   class_span :load_db
 
   def self.save_db(db_file, job_postings)
-    active_span.set_attribute("job_postings.count", job_postings.size)
+    active_span.add_field("job_postings.count", job_postings.size)
     File.write(db_file, JSON.pretty_generate(job_postings.map(&:to_h)))
   end
   class_span :save_db

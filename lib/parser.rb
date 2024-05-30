@@ -41,7 +41,7 @@ class Parser
     @parser_object.parse_job_postings(html)
   rescue StandardError => e
     LOGGER.error("Error parsing job postings: #{e.message} #{e.backtrace.join("\n")}")
-    active_span.record_exception(e)
+    Tracing.record_exception(e)
     []
   end
 end

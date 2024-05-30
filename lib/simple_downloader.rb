@@ -8,12 +8,12 @@ class SimpleDownloader
   include Tracing
 
   def fetch_listings(url, parser, tries = 3)
-    active_span.set_attribute("tries", tries)
-    active_span.set_attribute("url", url)
+    active_span.add_field("tries", tries)
+    active_span.add_field("url", url)
 
     if tries <= 0
       LOGGER.error("Failed to fetch listings from #{url} after 3 tries")
-      active_span.set_attribute("tries_exceeded", true)
+      active_span.add_field("tries_exceeded", true)
       return []
     end
 
@@ -21,11 +21,11 @@ class SimpleDownloader
     html = fetch(url)
     listings = parser.parse(html)
     LOGGER.info("Fetched #{listings.size} listings from #{url}")
-    active_span.set_attribute("listings_count", listings.size)
+    active_span.add_field("listings_count", listings.size)
     listings
   rescue StandardError => e
     LOGGER.warn("Failed to fetch listings from #{url}: #{e.message}\n#{e.backtrace.join("\n")}")
-    active_span.record_exception(e)
+    Tracing.record_exception(e)
     fetch_listings(url, parser, tries - 1)
   end
   span :fetch_listings

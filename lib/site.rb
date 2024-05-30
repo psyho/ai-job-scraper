@@ -17,14 +17,12 @@ Site = Data.define(:url, :idx, :no_js) do
   end
 
   def self.fetch_all_listings
-    context = OpenTelemetry::Context.current
+    parent = Tracing.active_span
 
     Parallel.flat_map(Site.all, in_threads: THREAD_COUNT) do |site|
-      span = TRACER.start_span("fetch_listings", with_parent: context)
-      OpenTelemetry::Trace.with_span(span) do
-        span.set_attribute("site_url", site.url)
+      Tracing.start_span("fetch_listings", parent:, site_url: site.url) do |span|
         listings = site.fetch_listings
-        span.set_attribute("listings_count", listings.size)
+        span.add_field("listings_count", listings.size)
         listings
       end
     end

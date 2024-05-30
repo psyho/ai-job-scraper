@@ -1,15 +1,9 @@
-require 'opentelemetry/sdk'
-require 'opentelemetry/exporter/otlp'
-require 'opentelemetry/instrumentation/all'
+require "honeycomb-beeline"
 
-OpenTelemetry::SDK.configure do |c|
-  c.use_all
-end
-
-TRACER = OpenTelemetry.tracer_provider.tracer('job-search')
-
-at_exit do
-  OpenTelemetry.tracer_provider.shutdown
+Honeycomb.configure do |config|
+  config.write_key = ENV.fetch("HONEYCOMB_WRITE_KEY")
+  config.service_name = "jobs-search"
+  config.dataset = ENV.fetch("HONEYCOMB_DATASET")
 end
 
 module WrapInSpan
@@ -17,7 +11,7 @@ module WrapInSpan
     Module.new do
       define_method method_name do |*args, **kwargs, &block|
         span_name = name || "#{self.class.name}##{method_name}"
-        TRACER.in_span(span_name) do
+        Tracing.start_span(span_name) do
           super(*args, **kwargs, &block)
         end
       end
@@ -26,6 +20,20 @@ module WrapInSpan
 end
 
 module Tracing
+  def self.record_exception(exception)
+    active_span.add_field("error", exception.message)
+    active_span.add_field("error_detail", exception.backtrace.join("\n"))
+  end
+
+  def self.start_span(name, parent: nil, **fields, &)
+    serialized_trace = parent&.to_trace_header
+    Honeycomb.start_span(name: name, serialized_trace:, **fields, &)
+  end
+
+  def self.active_span
+    Honeycomb.current_span
+  end
+
   module ClassMethods
     def span(method_name)
       prepend WrapInSpan.new(method_name)
@@ -38,7 +46,7 @@ module Tracing
     end
 
     def active_span
-      OpenTelemetry::Trace.current_span
+      Tracing.active_span
     end
   end
 
@@ -47,6 +55,6 @@ module Tracing
   end
 
   def active_span
-    OpenTelemetry::Trace.current_span
+    Tracing.active_span
   end
 end

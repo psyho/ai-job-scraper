@@ -6,4 +6,5 @@ Dockerfile
 .gitignore
 .git
 .dockerignore
+.env
 db

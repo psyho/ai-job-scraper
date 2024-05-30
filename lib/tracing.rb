@@ -10,7 +10,7 @@ module WrapInSpan
   def self.new(method_name, name: nil)
     Module.new do
       define_method method_name do |*args, **kwargs, &block|
-        span_name = name || "#{self.class.name}##{method_name}"
+        span_name = name&.call || "#{self.class.name}##{method_name}"
         Tracing.start_span(span_name) do
           super(*args, **kwargs, &block)
         end
@@ -40,9 +40,7 @@ module Tracing
     end
 
     def class_span(method_name)
-      class_eval do
-        prepend WrapInSpan.new(method_name, name: "#{name}.#{method_name}")
-      end
+      singleton_class.prepend WrapInSpan.new(method_name, name: -> { "#{name}.#{method_name}" })
     end
 
     def active_span
